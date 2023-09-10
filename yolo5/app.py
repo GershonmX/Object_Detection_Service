@@ -6,25 +6,59 @@ import uuid
 import yaml
 from loguru import logger
 import os
+import boto3
+from pymongo import MongoClient
 
-images_bucket = os.environ['BUCKET_NAME']
 
+# Specify the bucket name
+bucket_name = os.environ['BUCKET_NAME']
+
+# Specify the key (path) of the image you want to download
+image_key = img_name  # Assuming 'img_name' contains the image key
+
+# Specify the local path where you want to save the downloaded image
+local_image_path = f'static/data/{prediction_id}/{image_key}'
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Load COCO names
 with open("data/coco128.yaml", "r") as stream:
     names = yaml.safe_load(stream)['names']
 
-app = Flask(__name__)
+# Initialize S3 client
+s3 = boto3.client('s3')
+
+# Initialize MongoDB client
+client = MongoClient('mongodb://localhost:27017/')  # Replace with your MongoDB connection string
+db = client['your_database_name']  # Replace with your database name
+collection = db['prediction_summaries']  # Replace with your collection name
 
 @app.route('/predict', methods=['POST'])
 def predict():
     # Generates a UUID for this current prediction HTTP request. This id can be used as a reference in logs to identify and track individual prediction requests.
     prediction_id = str(uuid.uuid4())
-
-    logger.info(f'prediction: {prediction_id}. start processing')
+     logger.info(f'prediction: {prediction_id}. start processing')
 
     # Receives a URL parameter representing the image to download from S3
     img_name = request.args.get('imgName')
 
-    # TODO download img_name from S3, store the local image path in original_img_path
+    # Specify the bucket name
+    bucket_name = os.environ['BUCKET_NAME']
+
+    # Specify the local path to save the downloaded image
+    local_image_path = f'static/data/{prediction_id}/{img_name}'
+
+    # Download the image from S3
+    s3.download_file(bucket_name, img_name, local_image_path)
+    logger.info(f'prediction: {prediction_id}/{local_image_path}. Download img completed')
+
+    # Download the image from S3
+    s3.download_file(bucket_name, img_name, local_image_path)
+    logger.info(f'prediction: {prediction_id}/{local_image_path}. Download img completed')
+
+
+# TODO download img_name from S3, store the local image path in original_img_path
     #  The bucket name should be provided as an env var BUCKET_NAME.
     original_img_path = ...
 
