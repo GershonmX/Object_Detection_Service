@@ -3,11 +3,19 @@ from loguru import logger
 import os
 import time
 from telebot.types import InputFile
-
+import requests
+import boto3
 
 class Bot:
 
     def __init__(self, token, telegram_chat_url):
+        # Load AWS credentials from /root/.aws/credentials
+        aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+        aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+        # Configure boto3 with AWS credentials
+        self.s3 = boto3.client('s3', 'aws_access_key_id', 'aws_secret_access_key')
+
         # create a new instance of the TeleBot class.
         # all communication with Telegram servers are done using self.telegram_bot_client
         self.telegram_bot_client = telebot.TeleBot(token)
@@ -44,7 +52,6 @@ class Bot:
 
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
-
         with open(file_info.file_path, 'wb') as photo:
             photo.write(data)
 
@@ -66,12 +73,25 @@ class Bot:
 
 
 class ObjectDetectionBot(Bot):
-    def handle_message(self, msg):
+        def handle_message(self, msg):
         logger.info(f'Incoming message: {msg}')
 
         if self.is_current_msg_photo(msg):
             photo_path = self.download_user_photo(msg)
 
             # TODO upload the photo to S3
+            s3_bucket_name = 'gershonm-s3'
+            s3_photo_key = f'photos/{photo_name}'
+            self.s3.upload_file(photo_path, s3_bucket_name, s3_photo_key)
+            logger.info(f'Uploaded user\'s photo to S3: {s3_photo_key}')
+
             # TODO send a request to the `yolo5` service for prediction
+            yolo5_service_url = 'http://localhost:8081/predict'  # Replace with actual URL
+            response = requests.post(yolo5_service_url, params={'imgName': s3_photo_key})
+
             # TODO send results to the Telegram end-user
+            prediction_results = response.json()
+
+            # Send the results back to the Telegram end-user
+            self.send_text(msg['chat']['id'], f'Object detection results: {prediction_results}')
+

@@ -8,6 +8,10 @@ app = flask.Flask(__name__)
 TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 TELEGRAM_APP_URL = os.environ['TELEGRAM_APP_URL']
 
+# Load AWS credentials from /root/.aws/credentials
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
 
 @app.route('/', methods=['GET'])
 def index():
