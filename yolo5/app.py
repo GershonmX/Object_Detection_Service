@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 # Initialize MongoDB client (replace with your MongoDB connection details)
 client = MongoClient('mongodb://localhost:27017/')
-db = client['your_database_name']
+db = client['mongodb']
 collection = db['myReplicaSet']  # Use your collection name here
 
 # Load COCO names
@@ -38,14 +38,19 @@ def predict():
     img_name = request.args.get('imgName')
 
     # Specify the local path to save the downloaded image
-    local_image_path = f'static/data/{prediction_id}/{img_name}'
+
+    img_path =img_name.split('/')[-1]
+    local_dir = 'photos/'
+    local_image_path = os.path.join(local_dir, img_path)  # Concatenate local_dir with img_path
     os.makedirs(local_image_path, exist_ok=True)
+    original_img_path = local_dir + img_path
+
 
     # TODO download img_name from S3, store the local image path in original_img_path
     # Download the image from S3
     try:
-        s3.download_file(bucket_name, img_name, local_image_path)
-        logger.info(f'prediction: {prediction_id}/{local_image_path}. Download img completed')
+        s3.download_file(bucket_name, img_name, original_img_path)
+        logger.info(f'prediction: {prediction_id}/{original_img_path}. Download img completed')
     except Exception as e:
         logger.error(f'Error downloading image: {e}')
 
@@ -53,13 +58,13 @@ def predict():
     run(
         weights='yolov5s.pt',
         data='data/coco128.yaml',
-        source=local_image_path, # Use the correct COCO YAML path
+        source=original_img_path, # Use the correct COCO YAML path
         project='static/data',
         name=prediction_id,
         save_txt=True
     )
 
-    logger.info(f'prediction: {prediction_id}/{local_image_path}. done')
+    logger.info(f'prediction: {prediction_id}/{original_img_path}. done')
 
     # This is the path for the predicted image with labels
     predicted_img_path = f'static/data/{prediction_id}/{img_name}'
@@ -67,7 +72,7 @@ def predict():
     # TODO Uploads the predicted image (predicted_img_path) to S3 (be careful not to override the original image).
 
     # Parse prediction labels and create a summary
-    pred_summary_path = Path(f'static/data/{prediction_id}/labels/{local_image_path.split(".")[0]}.txt')
+    pred_summary_path = Path(f'static/data/{prediction_id}/labels/{original_img_path.split(".")[0]}.txt')
     if pred_summary_path.exists():
         with open(pred_summary_path) as f:
             labels = f.read().splitlines()
@@ -80,11 +85,11 @@ def predict():
                 'height': float(l[4]),
             } for l in labels]
 
-        logger.info(f'prediction: {prediction_id}/{local_image_path}. prediction summary:\n\n{labels}')
+        logger.info(f'prediction: {prediction_id}/{original_img_path}. prediction summary:\n\n{labels}')
 
         prediction_summary = {
             'prediction_id': prediction_id,
-            'original_img_path': local_image_path,
+            'original_img_path': original_img_path,
             'predicted_img_path': str(predicted_img_path),
             'labels': labels,
             'time': time.time()
@@ -95,7 +100,7 @@ def predict():
 
         return prediction_summary
     else:
-        return f'prediction: {prediction_id}/{local_image_path}. prediction result not found', 404
+        return f'prediction: {prediction_id}/{original_img_path}. prediction result not found', 404
 
 
 if __name__ == "__main__":
