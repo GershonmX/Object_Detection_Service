@@ -15,7 +15,7 @@ class Bot:
         aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
         # Configure boto3 with AWS credentials
-        self.s3 = boto3.client('s3', 'aws_access_key_id', 'aws_secret_access_key')
+        self.s3 = boto3.client('s3', aws_access_key_id, aws_secret_access_key)
 
         # create a new instance of the TeleBot class.
         # all communication with Telegram servers are done using self.telegram_bot_client
@@ -75,7 +75,7 @@ class Bot:
 class QuoteBot(Bot):
     def handle_message(self, msg):
         logger.info(f'Incoming message: {msg}')
-            if msg["text"] != 'Please don\'t quote me':
+        if msg["text"] != 'Please don\'t quote me':
                     self.send_text_with_quote(msg['chat']['id'], msg["text"], quoted_msg_id=msg["message_id"])
 
 class ImageProcessingBot(Bot):
@@ -110,8 +110,8 @@ class ImageProcessingBot(Bot):
 
             else:
                 logger.info("Received photo without a caption.")
-            elif "text" in msg:
-                super().handle_message(msg)  # Call the parent class method to handle text messages
+        elif "text" in msg:
+            super().handle_message(msg)  # Call the parent class method to handle text messages
 
     def process_image(self, msg):
         self.processing_completed = False
