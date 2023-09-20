@@ -7,7 +7,9 @@ import yaml
 from loguru import logger
 import os
 import boto3
-from pymongo import MongoClient
+from botocore.exceptions import ClientError
+#import requests
+#from pymongo import MongoClient
 
 # Specify the bucket name
 bucket_name = os.environ['BUCKET_NAME']
@@ -18,10 +20,33 @@ s3 = boto3.client('s3')
 # Initialize Flask app
 app = Flask(__name__)
 
+def upload_file(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = os.path.basename(file_name)
+
+    # Upload the file
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.upload_file(file_name, bucket, object_name)
+    except ClientError as e:
+        logger.error(e)
+        return False
+    return True
+
+
 # Initialize MongoDB client (replace with your MongoDB connection details)
-client = MongoClient('mongodb://localhost:27017/')
-db = client['mongodb']
-collection = db['myReplicaSet']  # Use your collection name here
+#client = MongoClient('mongodb://localhost:27017/')
+#db = client['mongodb']
+#collection = db['myReplicaSet']  # Use your collection name here
 
 # Load COCO names
 with open("data/coco128.yaml", "r") as stream:
@@ -39,11 +64,11 @@ def predict():
 
     # Specify the local path to save the downloaded image
 
-    img_path =img_name.split('/')[-1]
+    #img_path =img_name.split('/')[-1]
     local_dir = 'photos/'
-    local_image_path = os.path.join(local_dir, img_path)  # Concatenate local_dir with img_path
-    os.makedirs(local_image_path, exist_ok=True)
-    original_img_path = local_dir + img_path
+    os.makedirs(local_dir, exist_ok=True)
+    #local_image_path = os.path.join(local_dir, img_name)  # Concatenate local_dir with img_path
+    original_img_path = local_dir + img_name
 
 
     # TODO download img_name from S3, store the local image path in original_img_path
@@ -51,8 +76,9 @@ def predict():
     try:
         s3.download_file(bucket_name, img_name, original_img_path)
         logger.info(f'prediction: {prediction_id}/{original_img_path}. Download img completed')
-    except Exception as e:
-        logger.error(f'Error downloading image: {e}')
+
+    except ClientError as e:
+       logger.error(f'Error downloading image: {e}')
 
     # Predicts the objects in the image
     run(
@@ -70,9 +96,13 @@ def predict():
     predicted_img_path = f'static/data/{prediction_id}/{img_name}'
 
     # TODO Uploads the predicted image (predicted_img_path) to S3 (be careful not to override the original image).
+    path_to_upload= f'prediction {img_name}'
+    upload_file(predicted_img_path, bucket_name, path_to_upload)
+
 
     # Parse prediction labels and create a summary
-    pred_summary_path = Path(f'static/data/{prediction_id}/labels/{original_img_path.split(".")[0]}.txt')
+    pred_summary_path = Path(f'static/data/{prediction_id}/labels/{img_name.split(".")[0]}.txt')
+    logger.info(f'prediction: {pred_summary_path}')
     if pred_summary_path.exists():
         with open(pred_summary_path) as f:
             labels = f.read().splitlines()
@@ -96,12 +126,11 @@ def predict():
         }
 
         # TODO store the prediction_summary in MongoDB
-        collection.insert_one(prediction_summary)
+        #collection.insert_one(prediction_summary)
 
         return prediction_summary
     else:
         return f'prediction: {prediction_id}/{original_img_path}. prediction result not found', 404
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8081)

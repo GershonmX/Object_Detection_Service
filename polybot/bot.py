@@ -6,16 +6,18 @@ from telebot.types import InputFile
 from polybot.img_proc import Img
 import requests
 import boto3
+import json
+import sys
 
 class Bot:
 
     def __init__(self, token, telegram_chat_url):
         # Load AWS credentials from /root/.aws/credentials
-        aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-        aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        #aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+        #aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
         # Configure boto3 with AWS credentials
-        self.s3 = boto3.client('s3', aws_access_key_id, aws_secret_access_key)
+        #self.s3 = boto3.client('s3', aws_access_key_id, aws_secret_access_key)
 
         # create a new instance of the TeleBot class.
         # all communication with Telegram servers are done using self.telegram_bot_client
@@ -105,8 +107,15 @@ class ImageProcessingBot(Bot):
                     self.process_image_salt_and_pepper(msg)
                 elif 'concat' in caption:
                     self.process_image_concat(msg)
+                elif "predict" in caption.lower():
+                    self.upload_2_S3(msg)
+                #elif:
+                #   "prodick" in caption.lower()
+                #    self.predict_message(msg)
+
                 else:
                     self.send_text(msg['chat']['id'],"Unknown processing method. Please provide a valid method in the caption.")
+
 
             else:
                 logger.info("Received photo without a caption.")
@@ -230,9 +239,7 @@ class ImageProcessingBot(Bot):
     def process_image_concat(self, msg):
         pass
 
-
-class ObjectDetectionBot(Bot):
-    def handle_message(self, msg):
+    def predict_message(self, msg):
         logger.info(f'Incoming message: {msg}')
 
         if self.is_current_msg_photo(msg):
@@ -240,7 +247,7 @@ class ObjectDetectionBot(Bot):
 
             # TODO upload the photo to S3
             s3_bucket_name = 'gershonm-s3'
-            s3_photo_key = f'photos/{photo_name}'
+            s3_photo_key = f'photos/{photo_path}'
             self.s3.upload_file(photo_path, s3_bucket_name, s3_photo_key)
             logger.info(f'Uploaded user\'s photo to S3: {s3_photo_key}')
 
@@ -254,3 +261,49 @@ class ObjectDetectionBot(Bot):
             # Send the results back to the Telegram end-user
             self.send_text(msg['chat']['id'], f'Object detection results: {prediction_results}')
 
+    def upload_2_S3(self, msg):
+        self.processing_completed = False
+        # Download the photo sent by the user
+        # file_info = self.telegram_bot_client.get_file(msg['photo'][-1]['file_id'])
+        # file_path_parts = file_info.file_path.split('/')
+        # file_name = file_path_parts[-1]
+        image_path = self.download_user_photo(msg)
+        # Upload the image to S3
+        s3_client = boto3.client('s3')
+        images_bucket = 'gershonm-s3'
+        s3_key = f'{msg["chat"]["id"]}.jpeg'
+        s3_client.upload_file(image_path, images_bucket, s3_key)
+
+        time.sleep(5)
+
+        # Send a request to the YOLO5 microservice # with the containers name once its build
+        yolo5_url = f'http://localhost:8081/predict?imgName={s3_key}'
+        response = requests.post(yolo5_url)
+        if response.status_code == 200:
+            # Print the JSON response as text
+            json_response = response.text
+            print(json_response)
+            sys.stdout.flush()
+
+            # Parse the Json file and send user a message:
+            response_data = json.loads(json_response)
+            # Initialize a dictionary to store the class counts
+            class_counts = {}
+
+            # Iterate through the labels and count the occurrences of each class
+            for label in response_data['labels']:
+                class_name = label['class']
+                if class_name in class_counts:
+                    class_counts[class_name] += 1
+                else:
+                    class_counts[class_name] = 1
+
+            # Create a message with the detected objects and their counts
+            message = "Detected Objects:\n"
+            for class_name, count in class_counts.items():
+                message += f"{class_name}: {count}\n"
+
+            # Send the message to the user
+            self.telegram_bot_client.send_message(msg['chat']['id'], message)
+
+        self.processing_completed = True

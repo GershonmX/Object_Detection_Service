@@ -1,7 +1,8 @@
 import flask
 from flask import request
 import os
-from bot import Bot, ObjectDetectionBot, QuoteBot, ImageProcessingBot
+import requests
+from bot import Bot, QuoteBot, ImageProcessingBot
 
 app = flask.Flask(__name__)
 
@@ -9,8 +10,8 @@ TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 TELEGRAM_APP_URL = os.environ['TELEGRAM_APP_URL']
 
 # Load AWS credentials from /root/.aws/credentials
-aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+#aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+#aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 
 @app.route('/', methods=['GET'])
@@ -27,9 +28,8 @@ def webhook():
 
 if __name__ == "__main__":
     #bot = QuoteBot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
-    #bot = ImageProcessingBot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
     #bot = QuoteBot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
     #bot = Bot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
-    bot = ObjectDetectionBot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
+    bot = ImageProcessingBot(TELEGRAM_TOKEN, TELEGRAM_APP_URL)
 
     app.run(host='0.0.0.0', port=8443)
