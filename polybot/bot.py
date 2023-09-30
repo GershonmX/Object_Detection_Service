@@ -109,10 +109,6 @@ class ImageProcessingBot(Bot):
                     self.process_image_concat(msg)
                 elif "predict" in caption.lower():
                     self.upload_2_S3(msg)
-                #elif:
-                #   "prodick" in caption.lower()
-                #    self.predict_message(msg)
-
                 else:
                     self.send_text(msg['chat']['id'],"Unknown processing method. Please provide a valid method in the caption.")
 

@@ -1,0 +1,7 @@
+version: '3'
+services:
+  telegram-bot:
+    image: your-telegram-bot-image:tag
+    environment:
+      - BOT_API_TOKEN=your-bot-api-token
+    restart: always
