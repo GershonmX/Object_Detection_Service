@@ -2,6 +2,7 @@ from pathlib import Path
 from matplotlib.image import imread, imsave
 import random
 
+
 def rgb2gray(rgb):
     r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
     gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
@@ -46,7 +47,7 @@ class Img:
         for i, row in enumerate(self.data):
             res = []
             for j in range(1, len(row)):
-                res.append(abs(row[j-1] - row[j]))
+                res.append(abs(row[j - 1] - row[j]))
 
             self.data[i] = res
 
@@ -64,7 +65,7 @@ class Img:
         # Update the data with the rotated data
         self.data = rotated_data
 
-    def salt_n_pepper(self,amount=0.05):
+    def salt_n_pepper(self, amount=0.05):
         height = len(self.data)
         width = len(self.data[0])
 

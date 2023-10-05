@@ -3,7 +3,7 @@ from loguru import logger
 import os
 import time
 from telebot.types import InputFile
-from polybot.img_proc import Img
+from img_proc import Img
 import requests
 import boto3
 import json
@@ -55,6 +55,7 @@ class Bot:
 
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
+
         with open(file_info.file_path, 'wb') as photo:
             photo.write(data)
 
@@ -72,7 +73,8 @@ class Bot:
     def handle_message(self, msg):
         """Bot Main message handler"""
         logger.info(f'Incoming message: {msg}')
-        self.send_text(msg['chat']['id'], f'Your original message: {msg["text"]}')
+        if 'text' in msg:
+            self.send_text(msg['chat']['id'], f'Your original message: {msg["text"]}')
 
 class QuoteBot(Bot):
     def handle_message(self, msg):
@@ -103,7 +105,7 @@ class ImageProcessingBot(Bot):
                     self.process_image_rotate(msg)
                 elif 'segment' in caption:
                     self.process_image_segment(msg)
-                elif 'salt and pepper' in caption:
+                elif 'salt_n_pepper' in caption:
                     self.process_image_salt_and_pepper(msg)
                 elif 'concat' in caption:
                     self.process_image_concat(msg)
@@ -135,9 +137,9 @@ class ImageProcessingBot(Bot):
         if processed_image_path is not None:
             # Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
 
-    def process_image_contur(self, msg):
+    def process_image_contour(self, msg):
         self.processing_completed = False
         # Download the two photos sent by the user
         image_path = self.download_user_photo(msg)
@@ -151,7 +153,7 @@ class ImageProcessingBot(Bot):
         if processed_image_path is not None:
         #Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
 
     def process_image_rotate(self, msg):
         self.processing_completed = False
@@ -167,7 +169,7 @@ class ImageProcessingBot(Bot):
         if processed_image_path is not None:
             # Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
 
     def process_image_blur(self, msg):
         self.processing_completed = False
@@ -183,39 +185,23 @@ class ImageProcessingBot(Bot):
         if processed_image_path is not None:
             # Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
-
-    def process_image_contour(self, msg):
-        self.processing_completed = False
-        # Download the two photos sent by the user
-        image_path = self.download_user_photo(msg)
-        # Create two different Img objects from the downloaded images
-        image = Img(image_path)
-        # Process the image using your custom methods (e.g., apply filter)
-        image.contour()  # contour the image
-        # Save the processed image to the specified folder
-        processed_image_path = image.save_img()
-
-        if processed_image_path is not None:
-            # Send the processed image back to the user
-            self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
 
     def process_image_segment(self, msg):
         self.processing_completed = False
-        # Download the two photos sent by the user
+        # Download the photo sent by the user
         image_path = self.download_user_photo(msg)
-        # Create two different Img objects from the downloaded images
+        # Create an Img object from the downloaded image
         image = Img(image_path)
         # Process the image using your custom methods (e.g., apply filter)
-        image.segment()  # segment the image
+        image.segment()  # Segment the image
         # Save the processed image to the specified folder
         processed_image_path = image.save_img()
 
         if processed_image_path is not None:
             # Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
 
     def process_image_salt_and_pepper(self, msg):
         self.processing_completed = False
@@ -231,9 +217,35 @@ class ImageProcessingBot(Bot):
         if processed_image_path is not None:
             # Send the processed image back to the user
             self.send_photo(msg['chat']['id'], processed_image_path)
-            self.processing_completed = True
+        self.processing_completed = True
+
     def process_image_concat(self, msg):
-        pass
+        self.processing_completed = False
+
+        # Check if the message contains at least two photos
+        if "photo" not in msg or len(msg["photo"]) < 2:
+            self.send_text(msg['chat']['id'], "Please send at least two photos to concatenate.")
+        self.processing_completed = True
+        return
+
+        # Download the two photos sent by the user
+        image_path1 = self.download_user_photo(msg)
+        image_path2 = self.download_user_photo(msg)
+
+        # Create two different Img objects from the downloaded images
+        image1 = Img(image_path1)
+        image2 = Img(image_path2)
+
+        # Concatenate the two images
+        image1.concat(image2)
+
+        # Save the processed image to the specified folder
+        processed_image_path = image1.save_img()
+
+        if processed_image_path is not None:
+            # Send the processed image back to the user
+            self.send_photo(msg['chat']['id'], processed_image_path)
+        self.processing_completed = True
 
     def predict_message(self, msg):
         logger.info(f'Incoming message: {msg}')
