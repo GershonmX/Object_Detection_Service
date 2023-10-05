@@ -271,10 +271,6 @@ class ImageProcessingBot(Bot):
 
     def upload_2_S3(self, msg):
         self.processing_completed = False
-        # Download the photo sent by the user
-        # file_info = self.telegram_bot_client.get_file(msg['photo'][-1]['file_id'])
-        # file_path_parts = file_info.file_path.split('/')
-        # file_name = file_path_parts[-1]
         image_path = self.download_user_photo(msg)
         # Upload the image to S3
         s3_client = boto3.client('s3')

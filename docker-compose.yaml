@@ -1,7 +1,67 @@
 version: '3'
 services:
-  telegram-bot:
-    image: your-telegram-bot-image:tag
+  mongo1:
+    image: mongo:4.4.24
+    container_name: mongo1
+    networks:
+      - mongoCluster
+    ports:
+      - "27017:27017"
+    volumes:
+      - /home/ubuntu/data:/data/db
+    command: "--replSet myReplicaSet"
+  mongo2:
+    image: mongo:4.4.24
+    container_name: mongo2
+    networks:
+      - mongoCluster
+    command: "--replSet myReplicaSet"
+  mongo3:
+    image: mongo:4.4.24
+    container_name: mongo3
+    networks:
+      - mongoCluster
+    command: "--replSet myReplicaSet"
+  mongo-init:
+    image: mongo:4.4.24
+    container_name: mongo-init
+    networks:
+      - mongoCluster
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    volumes:
+      - ./scripts/wait-for-it.sh:/scripts/wait-for-it.sh
+    command: ["./scripts/wait-for-it.sh", "mongo1:27017", "--", "mongo", "mongo1:27017/admin", "--eval", "rs.initiate({ _id: 'myReplicaSet', members: [{ _id: 0, host: 'mongo1:27017' }, { _id: 1, host: 'mongo2:27017' }, { _id: 2, host: 'mongo3:27017' }] });"]
+
+  yolo5app:
+    image: gershonmx/my_yolo5:latest
+    container_name: yolo5-app
+    networks:
+      - mongoCluster
+    ports:
+      - "8081:8081"
+    volumes:
+      - $HOME/.aws/credentials:/root/.aws/credentials
+    env_file:
+      - secrets.env
+
+  telebot:
+    image: gershonmx/my_bot:latest
+    container_name: telegram_bot
+    networks:
+      - mongoCluster
+    ports:
+      - "8443:8443"
+    env_file:
+      - secrets.env
     environment:
-      - BOT_API_TOKEN=your-bot-api-token
-    restart: always
+      - CONT_NAME=yolo5-app
+    volumes:
+      - $HOME/.aws/credentials:/root/.aws/credentials
+
+networks:
+  mongoCluster:
+    driver: bridge
+
