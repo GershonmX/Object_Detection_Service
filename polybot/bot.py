@@ -281,7 +281,7 @@ class ImageProcessingBot(Bot):
         time.sleep(5)
 
         # Send a request to the YOLO5 microservice # with the containers name once its build
-        yolo5_url = f'http://localhost:8081/predict?imgName={s3_key}'
+        yolo5_url = f'http://my_yolo5:8081/predict?imgName={s3_key}'
         response = requests.post(yolo5_url)
         if response.status_code == 200:
             # Print the JSON response as text

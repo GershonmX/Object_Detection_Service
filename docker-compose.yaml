@@ -45,7 +45,7 @@ services:
     volumes:
       - $HOME/.aws/credentials:/root/.aws/credentials
     env_file:
-      - secrets.env
+      - .secrets.env
 
   telebot:
     image: gershonmx/my_bot:latest
@@ -55,7 +55,7 @@ services:
     ports:
       - "8443:8443"
     env_file:
-      - secrets.env
+      - .secrets.env
     environment:
       - CONT_NAME=yolo5-app
     volumes:
