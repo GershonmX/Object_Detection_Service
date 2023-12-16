@@ -31,13 +31,11 @@ services:
       - mongo1
       - mongo2
       - mongo3
-    volumes:
-      - ./scripts/wait-for-it.sh:/scripts/wait-for-it.sh
-    command: ["./scripts/wait-for-it.sh", "mongo1:27017", "--", "mongo", "mongo1:27017/admin", "--eval", "rs.initiate({ _id: 'myReplicaSet', members: [{ _id: 0, host: 'mongo1:27017' }, { _id: 1, host: 'mongo2:27017' }, { _id: 2, host: 'mongo3:27017' }] });"]
+    command: ["mongo1:27017", "--", "mongo", "mongo1:27017/admin", "--eval", "rs.initiate({ _id: 'myReplicaSet', members: [{ _id: 0, host: 'mongo1:27017' }, { _id: 1, host: 'mongo2:27017' }, { _id: 2, host: 'mongo3:27017' }] });"]
 
   yolo5app:
-    image: gershonmx/my_yolo5:latest
-    container_name: yolo5-app
+    image: gershonmx/my_yolo5:0.0.1
+    container_name: my_yolo5
     networks:
       - mongoCluster
     ports:
@@ -48,7 +46,7 @@ services:
       - .secrets.env
 
   telebot:
-    image: gershonmx/my_bot:latest
+    image: gershonmx/my_bot:0.0.1
     container_name: telegram_bot
     networks:
       - mongoCluster
