@@ -50,7 +50,7 @@ def upload_file(file_name, bucket, object_name=None):
 
 # Load COCO names
 with open("data/coco128.yaml", "r") as stream:
-    names = yaml.safe_load(stream)['names']
+    names = yaml.safe_load(stream)['names']predict
 
 @app.route('/predict', methods=['POST'])
 def predict():
