@@ -1,7 +1,8 @@
 version: '3'
 services:
+
   mongo1:
-    image: mongo:4.4.24
+    image: mongo
     container_name: mongo1
     networks:
       - mongoCluster
@@ -11,19 +12,19 @@ services:
       - /home/ubuntu/data:/data/db
     command: "--replSet myReplicaSet"
   mongo2:
-    image: mongo:4.4.24
+    image: mongo
     container_name: mongo2
     networks:
       - mongoCluster
     command: "--replSet myReplicaSet"
   mongo3:
-    image: mongo:4.4.24
+    image: mongo
     container_name: mongo3
     networks:
       - mongoCluster
     command: "--replSet myReplicaSet"
   mongo-init:
-    image: mongo:4.4.24
+    image: mongo
     container_name: mongo-init
     networks:
       - mongoCluster
@@ -71,4 +72,3 @@ services:
 networks:
   mongoCluster:
     driver: bridge
-

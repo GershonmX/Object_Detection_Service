@@ -12,13 +12,6 @@ import sys
 class Bot:
 
     def __init__(self, token, telegram_chat_url):
-        # Load AWS credentials from /root/.aws/credentials
-        #aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-        #aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-
-        # Configure boto3 with AWS credentials
-        #self.s3 = boto3.client('s3', aws_access_key_id, aws_secret_access_key)
-
         # create a new instance of the TeleBot class.
         # all communication with Telegram servers are done using self.telegram_bot_client
         self.telegram_bot_client = telebot.TeleBot(token)
